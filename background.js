@@ -1,16 +1,11 @@
-const canvas = document.getElementById('bg-canvas');
-const ctx = canvas.getContext('2d');
-
-let width, height;
-let timer = 0;
+let canvas, ctx, width, height, timer = 0;
+let lines = [];
 
 function resize() {
+    if (!canvas) return;
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
 }
-
-window.addEventListener('resize', resize);
-resize();
 
 class GridLine {
     constructor(x, y, speed, angle) {
@@ -21,11 +16,12 @@ class GridLine {
     }
 
     draw() {
+        if (!ctx) return;
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
         const lg = ctx.createLinearGradient(
-            this.x, this.y, 
-            this.x + Math.cos(this.angle) * 100, 
+            this.x, this.y,
+            this.x + Math.cos(this.angle) * 100,
             this.y + Math.sin(this.angle) * 100
         );
         lg.addColorStop(0, 'rgba(255, 23, 68, 0.3)');
@@ -48,18 +44,12 @@ class GridLine {
         this.x = Math.random() * width;
         this.y = Math.random() * height;
         this.speed = 1 + Math.random() * 2;
-        this.angle = Math.PI / 4; // 45 degrees for a retro aesthetic
+        this.angle = Math.PI / 4;
     }
 }
 
-const lines = [];
-for (let i = 0; i < 20; i++) {
-    const line = new GridLine(0, 0, 0, 0);
-    line.reset();
-    lines.push(line);
-}
-
 function animate() {
+    if (!ctx) return;
     ctx.fillStyle = '#0a0e27';
     ctx.fillRect(0, 0, width, height);
 
@@ -86,7 +76,6 @@ function animate() {
         ctx.stroke();
     }
 
-    // Floating lines
     lines.forEach(line => {
         line.update();
         line.draw();
@@ -96,4 +85,19 @@ function animate() {
     requestAnimationFrame(animate);
 }
 
-animate();
+document.addEventListener('DOMContentLoaded', () => {
+    canvas = document.getElementById('bg-canvas');
+    if (canvas) {
+        ctx = canvas.getContext('2d');
+        window.addEventListener('resize', resize);
+        resize();
+
+        for (let i = 0; i < 20; i++) {
+            const line = new GridLine(0, 0, 0, 0);
+            line.reset();
+            lines.push(line);
+        }
+
+        animate();
+    }
+});

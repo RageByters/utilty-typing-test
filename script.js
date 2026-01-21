@@ -6,17 +6,7 @@ const wordList = [
     "opacity", "package", "queue", "react", "stack", "toolkit", "utility", "virtual", "worker", "xss"
 ];
 
-const textDisplay = document.getElementById('text-display');
-const typingInput = document.getElementById('typing-input');
-const wpmDisplay = document.getElementById('wpm');
-const accuracyDisplay = document.getElementById('accuracy');
-const timerDisplay = document.getElementById('timer');
-const restartBtn = document.getElementById('restart-btn');
-const resultsModal = document.getElementById('results-modal');
-const finalWpm = document.getElementById('final-wpm');
-const finalAccuracy = document.getElementById('final-accuracy');
-const closeResults = document.getElementById('close-results');
-const diffBtns = document.querySelectorAll('.diff-btn');
+let textDisplay, typingInput, wpmDisplay, accuracyDisplay, timerDisplay, restartBtn, resultsModal, finalWpm, finalAccuracy, closeResults, diffBtns;
 
 let timer;
 let timeLeft = 60;
@@ -24,78 +14,93 @@ let isPlaying = false;
 let currentText = "";
 let charIndex = 0;
 let mistakes = 0;
-let totalChars = 0;
 
 function getRandomText() {
     let text = "";
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 40; i++) {
         text += wordList[Math.floor(Math.random() * wordList.length)] + " ";
     }
     return text.trim();
 }
 
 function initGame() {
-    currentText = getRandomText();
-    textDisplay.innerHTML = "";
-    currentText.split("").forEach(char => {
-        const span = document.createElement('span');
-        span.innerText = char;
-        textDisplay.appendChild(span);
-    });
-    textDisplay.querySelectorAll('span')[0].classList.add('current');
+    try {
+        console.log("Initializing game...");
+        currentText = getRandomText();
+        if (!textDisplay) return;
 
-    typingInput.value = "";
-    isPlaying = false;
-    charIndex = 0;
-    mistakes = 0;
-    totalChars = 0;
-    clearInterval(timer);
-    wpmDisplay.innerText = 0;
-    accuracyDisplay.innerText = "100%";
-    timerDisplay.innerText = timeLeft + "s";
-    resultsModal.classList.remove('active');
+        textDisplay.innerHTML = "";
+        currentText.split("").forEach(char => {
+            const span = document.createElement('span');
+            span.innerText = char;
+            textDisplay.appendChild(span);
+        });
+
+        const characters = textDisplay.querySelectorAll('span');
+        if (characters.length > 0) {
+            characters[0].classList.add('current');
+        }
+
+        typingInput.value = "";
+        typingInput.disabled = false;
+        isPlaying = false;
+        charIndex = 0;
+        mistakes = 0;
+        clearInterval(timer);
+
+        wpmDisplay.innerText = "0";
+        accuracyDisplay.innerText = "100%";
+        timerDisplay.innerText = timeLeft + "s";
+        resultsModal.classList.remove('active');
+        console.log("Game initialized successfully.");
+    } catch (error) {
+        console.error("Error in initGame:", error);
+    }
 }
 
 function startTimer() {
     if (timeLeft > 0) {
         timeLeft--;
         timerDisplay.innerText = timeLeft + "s";
-        updateWPM();
+        updateStats();
     } else {
         endGame();
     }
 }
 
-function updateWPM() {
-    const timeSpent = (parseInt(timerDisplay.dataset.totalTime || 60) - timeLeft) / 60;
+function updateStats() {
+    const totalTime = parseInt(timerDisplay.dataset.totalTime || 60);
+    const timeSpent = (totalTime - timeLeft) || 1; // Prevent division by zero
     const correctChars = charIndex - mistakes;
-    const wpm = Math.round((correctChars / 5) / timeSpent) || 0;
-    wpmDisplay.innerText = wpm > 0 ? wpm : 0;
-}
 
-function updateAccuracy() {
-    const accuracy = Math.round(((charIndex - mistakes) / charIndex) * 100) || 100;
+    // WPM: (correct chars / 5) / (seconds / 60)
+    const wpm = Math.round((correctChars / 5) / (timeSpent / 60)) || 0;
+    wpmDisplay.innerText = wpm;
+
+    const accuracy = charIndex > 0 ? Math.round(((charIndex - mistakes) / charIndex) * 100) : 100;
     accuracyDisplay.innerText = accuracy + "%";
 }
 
-function handleTyping(e) {
+function handleTyping() {
     const characters = textDisplay.querySelectorAll('span');
-    const typedChar = typingInput.value.split("")[charIndex];
+    const typedChar = typingInput.value[charIndex];
 
-    if (!isPlaying && typedChar != null) {
+    if (!isPlaying && typingInput.value.length > 0) {
         isPlaying = true;
-        const totalTime = parseInt(timerDisplay.innerText);
-        timerDisplay.dataset.totalTime = totalTime;
+        timerDisplay.dataset.totalTime = timeLeft;
         timer = setInterval(startTimer, 1000);
     }
 
     if (typedChar == null) {
-        // Backspace handled by input value reduction, but we need to update visual
+        // Backspace
         if (charIndex > 0) {
             charIndex--;
+            if (characters[charIndex].classList.contains('incorrect')) {
+                mistakes--;
+            }
             characters[charIndex].classList.remove('correct', 'incorrect', 'current');
             characters[charIndex].classList.add('current');
-            if (charIndex + 1 < characters.length) {
+            if (characters[charIndex + 1]) {
                 characters[charIndex + 1].classList.remove('current');
             }
         }
@@ -117,7 +122,7 @@ function handleTyping(e) {
         }
     }
 
-    updateAccuracy();
+    updateStats();
 }
 
 function endGame() {
@@ -130,34 +135,40 @@ function endGame() {
     resultsModal.classList.add('active');
 }
 
-restartBtn.addEventListener('click', () => {
-    typingInput.disabled = false;
-    initGame();
-    typingInput.focus();
-});
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize elements
+    textDisplay = document.getElementById('text-display');
+    typingInput = document.getElementById('typing-input');
+    wpmDisplay = document.getElementById('wpm');
+    accuracyDisplay = document.getElementById('accuracy');
+    timerDisplay = document.getElementById('timer');
+    restartBtn = document.getElementById('restart-btn');
+    resultsModal = document.getElementById('results-modal');
+    finalWpm = document.getElementById('final-wpm');
+    finalAccuracy = document.getElementById('final-accuracy');
+    closeResults = document.getElementById('close-results');
+    diffBtns = document.querySelectorAll('.diff-btn');
 
-closeResults.addEventListener('click', () => {
-    typingInput.disabled = false;
-    initGame();
-});
+    // Add listeners
+    if (restartBtn) restartBtn.addEventListener('click', initGame);
+    if (closeResults) closeResults.addEventListener('click', initGame);
+    if (typingInput) typingInput.addEventListener('input', handleTyping);
 
-typingInput.addEventListener('input', handleTyping);
-
-diffBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-        diffBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        timeLeft = parseInt(btn.dataset.time);
-        timerDisplay.innerText = timeLeft + "s";
-        initGame();
+    diffBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            diffBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            timeLeft = parseInt(btn.dataset.time);
+            timerDisplay.innerText = timeLeft + "s";
+            initGame();
+        });
     });
-});
 
-// Auto-focus input on click anyway
-document.addEventListener('click', () => {
-    if (!resultsModal.classList.contains('active')) {
-        typingInput.focus();
-    }
-});
+    document.addEventListener('click', () => {
+        if (typingInput && !resultsModal.classList.contains('active')) {
+            typingInput.focus();
+        }
+    });
 
-initGame();
+    initGame();
+});
