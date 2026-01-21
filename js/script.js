@@ -65,25 +65,26 @@
         if (timeLeft > 0) {
             timeLeft--;
             timerDisplay.innerText = timeLeft + "s";
-            const currentWpm = updateStats();
+            const currentWpm = updateWpm();
             wpmHistory.push(currentWpm);
         } else {
             endGame();
         }
     }
 
-    function updateStats() {
+    function updateWpm() {
         const totalTime = parseInt(timerDisplay.dataset.totalTime || 60);
         const timeSpent = (totalTime - timeLeft) || 1;
         const correctChars = charIndex - mistakes;
 
         const wpm = Math.round((correctChars / 5) / (timeSpent / 60)) || 0;
         wpmDisplay.innerText = wpm;
+        return wpm;
+    }
 
+    function updateAccuracy() {
         const accuracy = charIndex > 0 ? Math.round(((charIndex - mistakes) / charIndex) * 100) : 100;
         accuracyDisplay.innerText = accuracy + "%";
-        
-        return wpm;
     }
 
     function handleTyping() {
@@ -116,6 +117,10 @@
                 characters[charIndex].classList.add('incorrect');
             }
 
+            if (typedChar === ' ') {
+                updateAccuracy();
+            }
+
             characters[charIndex].classList.remove('current');
             charIndex++;
 
@@ -123,10 +128,11 @@
                 characters[charIndex].classList.add('current');
             } else {
                 endGame();
+                return;
             }
         }
 
-        updateStats();
+        updateWpm();
     }
 
     function endGame() {
@@ -134,9 +140,10 @@
         isPlaying = false;
         typingInput.disabled = true;
 
+        updateAccuracy();
         finalWpm.innerText = wpmDisplay.innerText + " WPM";
         finalAccuracy.innerText = accuracyDisplay.innerText;
-        
+
         renderChart();
         resultsModal.classList.add('active');
     }
